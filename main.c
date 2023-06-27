@@ -3,12 +3,14 @@
 #include <stdio.h>
 #include "game.h"
 
-#define SCREEN_WIDTH 600
-#define SCREEN_HEIGHT 1000
-#define CIRCLE_RADIUS 40
-#define RECTANGLE_WIDTH 80
-#define DEFAULT_SPEED 3
-#define DEFAULT_SPAWN_FREQUENCY 700 // in milliseconds // 700
+const int SCREEN_WIDTH = 600;
+const int SCREEN_HEIGHT = 1000;
+const int CIRCLE_RADIUS = 40;
+const int RECTANGLE_WIDTH = 80;
+const int DEFAULT_SPEED = 3;
+const int DEFAULT_SPAWN_FREQUENCY = 700; // in milliseconds // 700
+
+
 
 Node *create_node(Rectangle rect, int color)
 {
@@ -91,7 +93,8 @@ Color int_to_color(int color)
 void update(LinkedList *l, int speed, Orb *oB, Orb *oR, Player *player)
 {
     Node *current = l->first;
-
+    bool remove;
+    Node *temp;
     while (1)
     {
 
@@ -99,37 +102,34 @@ void update(LinkedList *l, int speed, Orb *oB, Orb *oR, Player *player)
         current->data->rect.y += speed;
         DrawRectangleRec(current->data->rect, int_to_color(current->data->color));
 
-        // Check for collisions
+        // Check for collisions and remove tile accordingly
+        // modify score
         // TODO make cleaner and more efficient
-        if (CheckCollisionCircleRec(*(oB->pose), CIRCLE_RADIUS, current->data->rect))
+        bool blueCollision = CheckCollisionCircleRec(*(oB->pose), CIRCLE_RADIUS, current->data->rect);
+        bool redCollision = CheckCollisionCircleRec(*(oR->pose), CIRCLE_RADIUS, current->data->rect);
+        if (blueCollision || redCollision)
         {
-            printf("blue collision!\n");
-            if (!current->data->color) // is blue
-                player->score++;
-            else
-                player->health--;
-            Node *temp = current;
-            if (current == l->last)
-                break;
-            current = current->next;
-            remove_node(l, temp);
+            if (blueCollision)
+            {
+                player->score += !current->data->color;
+                player->health -= current->data->color;
+            }
+            else if (redCollision)
+            {
+                player->score += current->data->color;
+                player->health -= !current->data->color;
+            }
+            temp = current;
+            remove = true;
         }
-        else if (CheckCollisionCircleRec(*(oR->pose), CIRCLE_RADIUS, current->data->rect))
-        {
-            if (current->data->color) // is red
-                player->score++;
-            else
-                player->health--;
-            Node *temp = current;
-            if (current == l->last)
-                break;
-            current = current->next;
-            remove_node(l, temp);
-        }
-
         if (current == l->last)
             break;
         current = current->next;
+        if (remove)
+        {
+            remove_node(l, temp);
+            remove = false;
+        }
     }
 }
 
